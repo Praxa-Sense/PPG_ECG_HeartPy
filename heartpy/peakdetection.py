@@ -362,6 +362,9 @@ def check_peaks(rr_arr, peaklist, ybeat, reject_segmentwise=False, working_data=
         upper_threshold = mean_rr + thirty_perc
         lower_threshold = mean_rr - thirty_perc
 
+    working_data['upper_threshold'] = upper_threshold
+    working_data['lower_threshold'] = lower_threshold
+
     # identify peaks to exclude based on RR interval
     rem_idx = np.where((rr_arr <= lower_threshold) | (rr_arr >= upper_threshold))[0] + 1
 
