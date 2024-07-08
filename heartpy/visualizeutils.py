@@ -11,6 +11,7 @@ import numpy as np
 from . import config
 
 __all__ = ['plotter',
+           'subplotter',
            'segment_plotter',
            'plot_poincare',
            'plot_breathing']
@@ -119,6 +120,79 @@ def plotter(working_data, measures, show=True, figsize=None,
         fig.show()
     else:
         return fig
+    
+def subplotter(working_data, measures, ax, title='Heart Rate Signal Peak Detection', moving_average=False): # pragma: no cover
+    '''plots the analysis results.
+
+    Does almost the same as plotter, but uses an axes for easy subplotting. See plotter for more documentation
+
+    Function that uses calculated measures and data stored in the working_data{} and measures{}
+    dict objects to visualise the fitted peak detection solution.
+
+    Parameters
+    ----------
+    working_data : dict
+        dictionary object that contains all heartpy's working data (temp) objects.
+        will be created if not passed to function
+
+    measures : dict
+        dictionary object used by heartpy to store computed measures. Will be created
+        if not passed to function
+
+    ax : Axes
+        Axes object on which the results are plotted
+    
+    title : string
+        title for the plot.
+        default : "Heart Rate Signal Peak Detection"
+
+    moving_average : bool
+        whether to display the moving average on the plot.
+        The moving average is used for peak fitting.
+        default: False
+
+    '''
+    #get color palette
+    colorpalette = config.get_colorpalette_plotter()
+
+    # create plot x-var
+    fs = working_data['sample_rate']
+    plotx = np.arange(0, len(working_data['hr'])/fs, 1/fs)
+    #check if there's a rounding error causing differing lengths of plotx and signal
+    diff = len(plotx) - len(working_data['hr'])
+    if diff < 0:
+        #add to linspace
+        plotx = np.append(plotx, plotx[-1] + (plotx[-2] - plotx[-1]))
+    elif diff > 0:
+        #trim linspace
+        plotx = plotx[0:-diff]
+        
+    peaklist = working_data['peaklist']
+    ybeat = working_data['ybeat']
+
+    rejectedpeaks = working_data['removed_beats']
+    rejectedpeaks_y = working_data['removed_beats_y']
+
+    ax.set_title(title)
+    ax.plot(plotx, working_data['hr'], color=colorpalette[0], label='heart rate signal', zorder=-10)
+    ax.set_xlabel('Time (s)')
+
+    if moving_average:
+        ax.plot(plotx, working_data['rolling_mean'], color='gray', alpha=0.5)
+
+    ax.scatter(np.asarray(peaklist)/fs, ybeat, color=colorpalette[1], label='BPM:%.2f' %(measures['bpm']))
+    ax.scatter(rejectedpeaks/fs, rejectedpeaks_y, color=colorpalette[2], marker='x', label='rejected peaks')
+
+    #check if rejected segment detection is on and has rejected segments
+    try:
+        if len(working_data['rejected_segments']) >= 1:
+            for segment in working_data['rejected_segments']:
+                ax.axvspan(segment[0], segment[1], facecolor='red', alpha=0.5)
+    except:
+        pass
+
+    ax.legend(loc=4, framealpha=0.6)
+    return ax
 
 def segment_plotter(working_data, measures, title='Heart Rate Signal Peak Detection',
                     figsize=(6, 6), path='', start=0, end=None, step=1): # pragma: no cover
